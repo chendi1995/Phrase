@@ -1,0 +1,144 @@
+/*************************************************************************
+    > File Name: compile.c
+    > Author: chendi
+    > Mail: trendy@xiyoulinux.org
+    > Created Time: 2015年11月20日 星期五 15时17分35秒
+ ************************************************************************/
+
+#include<stdio.h>
+#include<string.h>
+#include<stdlib.h>
+#include<sys/types.h>
+#include<regex.h>
+
+int errornum=0;
+char error[10][1024];
+
+int main(int argc,char* argv[])
+{
+	
+	char str[1024][1024];
+	int line=0;
+	char var_char[10][8];
+	int charp=0;
+	char var_int[10][8];
+	int intp=0;
+	if(argc>3)
+	{
+		printf("参数过多\n");
+	}
+	FILE *fp;
+	if((fp=fopen(argv[1],"rt"))==NULL)
+	{
+		printf("不存在源文件\n");
+		return -1;
+	}
+	int i,j,status;
+	while(!feof(fp))
+	{
+		fgets(str[line],1024,fp);
+		for(i=0;i<strlen(str[line]);i++)
+			if(str[line][i]==' '||str[line][i]=='\t'||str[line][i]=='\n')
+			{
+				for(j=i;j<strlen(str[line]);j++)
+					str[line][j]=str[line][j+1];
+				i--;
+			}
+		line++;
+	}
+	fclose(fp);
+	if((fp=fopen(argv[2],"a+"))==NULL)
+	{
+		printf("创建目标文件失败\n");
+	}
+	/*
+	for(i=0;i<line;i++)
+	{
+		printf("%s",str[i]);
+	}
+	*/
+	regex_t reg;
+	const char *pattern;
+	regmatch_t pmatch[10];
+	for(i=0;i<line;i++)
+	{
+		//变量声明判断(支持char和int)
+		/*
+		if(str[i][0]=='c' && str[i][1]=='h' && str[i][2]=='a' && str[i][3]=='r')
+		{
+			for(j=4;j<strlen(str[i]);j++)
+				if(str[i][j]!=',' && str[i][j]!=';')
+				{
+					var_char[charp++]=str[i][j];
+				}
+		}
+		else if(str[i][0]=='i' && str[i][1]=='n' && str[i][2]=='t')
+		{
+			for(j=3;j<strlen(str[i]);j++)
+				if(str[i][j]!=',' && str[i][j]!=';')
+				{
+					var_int[intp++]=str[i][j];
+				}
+			
+		}*/
+		//pattern="^char([a-zA-Z]+)(,[a-zA-Z]+)(*);$";
+		pattern="^char([a-zA-Z]+)(,[a-zA-Z]+)*(,[a-zA-Z]+)*(,[a-zA-Z]+)*(,[a-zA-Z]+)*(,[a-zA-Z]+)*(,[a-zA-Z]+)*;$";
+		regcomp(&reg,pattern,REG_EXTENDED);
+		int p;
+		int k;
+		if(regexec(&reg,str[i],10,pmatch,0)==0)
+		{
+			p=0;
+			for(j=pmatch[1].rm_so;j<pmatch[1].rm_eo;j++)
+			{
+				var_char[charp][p++]=str[i][j];
+			}
+			k=2;
+			var_char[charp][p]='\0';
+			printf("%d %s\n",charp,var_char[charp]);
+			charp++;
+			while(pmatch[k].rm_so!=-1 &&pmatch[k].rm_eo!=-1)
+			{
+				printf("k=%d\n",k);
+				p=0;
+				for(j=pmatch[k].rm_so+1;j<pmatch[k].rm_eo;j++)
+				{
+					var_char[charp][p++]=str[i][j];
+				}
+				var_char[charp][p]='\0';
+				printf("%d %s\n",charp,var_char[charp]);
+				charp++;
+				//printf("k=%d\n",k);
+				k++;
+			}
+		}
+		pattern="^int([a-zA-Z]+)(,[a-zA-Z]+){0,10};$";
+		regcomp(&reg,pattern,REG_EXTENDED);
+		if(regexec(&reg,str[i],10,pmatch,0)==0)
+		{
+			p=0;
+			for(j=pmatch[1].rm_so;j<pmatch[1].rm_eo;j++)
+			{
+				var_int[intp][p++]=str[i][j];
+			}
+			var_int[charp][p]='\0';
+			printf("%s\n",var_int[intp]);
+			intp++;
+		}
+		regfree(&reg);
+		pattern="^([a-zA-Z]+)=([0-9])+;$";
+		regcomp(&reg,pattern,REG_EXTENDED);
+		status=regexec(&reg,str[i],3,pmatch,0);
+		//printf("%s\n",str[i]);
+		//printf("%d\n",status);
+		/*
+		if(status==0)
+		{
+			for(j=pmatch[1].rm_so;j<pmatch[1].rm_eo;j++)
+				putchar(str[i][j]);
+		}
+		regfree(&reg);*/
+	}
+	return 0;
+	
+}
